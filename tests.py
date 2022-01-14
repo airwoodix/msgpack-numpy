@@ -225,6 +225,12 @@ class test_numpy_msgpack(TestCase):
         assert_array_equal(x, x_rec)
         assert_equal(x.dtype, x_rec.dtype)
 
+    def test_numpy_array_object(self):
+        x = np.array([dict(a=[1, 2, 3], b="a"), "a" * 5000, ("a", 2)], dtype=object)
+        x_rec = self.encode_decode(x)
+        assert_array_equal(x, x_rec)
+        assert_equal(x.dtype, x_rec.dtype)
+
     def test_numpy_array_noncontiguous(self):
         x = np.ones((10, 10), np.uint32)[0:5, 0:5]
         x_rec = self.encode_decode(x)

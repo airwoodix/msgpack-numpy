@@ -12,6 +12,7 @@ Support for serialization of numpy data types with msgpack.
 import sys
 import functools
 import warnings
+import pickle
 
 import msgpack
 from msgpack import Packer as _Packer, Unpacker as _Unpacker, \
@@ -22,7 +23,13 @@ if sys.version_info >= (3, 0):
     if sys.platform == 'darwin':
         ndarray_to_bytes = lambda obj: obj.tobytes()
     else:
-        ndarray_to_bytes = lambda obj: obj.data if obj.flags['C_CONTIGUOUS'] else obj.tobytes()
+        def ndarray_to_bytes(obj):
+            if obj.dtype == 'O':
+                return obj.dumps()
+            elif obj.flags['C_CONTIGUOUS']:
+                return obj.data
+            else:
+                return obj.tobytes()
 
     num_to_bytes = lambda obj: obj.data
 
@@ -87,8 +94,13 @@ def decode(obj, chain=None):
                              for d in obj[b'type']]
                 else:
                     descr = obj[b'type']
+
+                dt = _unpack_dtype(descr)
+                if dt == 'O':
+                    return pickle.loads(obj[b'data'])
+
                 return np.frombuffer(obj[b'data'],
-                            dtype=_unpack_dtype(descr)).reshape(obj[b'shape'])
+                                     dtype=dt).reshape(obj[b'shape'])
             else:
                 descr = obj[b'type']
                 return np.frombuffer(obj[b'data'],
